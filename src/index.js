@@ -173,3 +173,69 @@ const serverPort = process.env.PORT || PORT;
 server.listen(serverPort, () => {
   console.log("NK backend listening:", serverPort);
 });
+
+/* ----------------------------------------------
+   TERMINAL REAL (workspace-isolated)
+   ---------------------------------------------- */
+
+import { spawn } from "child_process";
+
+app.post("/api/workspaces/:id/terminal", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { command } = req.body;
+
+    if (!command || typeof command !== "string")
+      return res.status(400).json({ error: "invalid-command" });
+
+    const wsPath = path.join(WORKSPACES, id);
+
+    try { await fs.access(wsPath); }
+    catch { return res.status(404).json({ error: "workspace-not-found" }); }
+
+    // cria processo dentro do workspace
+    const shell = spawn(command, {
+      cwd: wsPath,
+      shell: true,
+      env: {
+        ...process.env,
+        PATH: process.env.PATH,
+      }
+    });
+
+    const session = Date.now().toString();
+
+    // stdout
+    shell.stdout.on("data", (data) => {
+      io.to(`ws:${id}`).emit("terminal:output", {
+        session,
+        text: data.toString()
+      });
+    });
+
+    // stderr
+    shell.stderr.on("data", (data) => {
+      io.to(`ws:${id}`).emit("terminal:error", {
+        session,
+        text: data.toString()
+      });
+    });
+
+    // fim do processo
+    shell.on("close", (code) => {
+      io.to(`ws:${id}`).emit("terminal:close", {
+        session,
+        code
+      });
+    });
+
+    return res.json({
+      ok: true,
+      session
+    });
+
+  } catch (err) {
+    console.error("TERMINAL ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
