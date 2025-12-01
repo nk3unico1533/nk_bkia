@@ -19,7 +19,7 @@ import { ensureDir, safeJoin } from "./utils.js";
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PORT = process.env.PORT || 3333;
+const PORT = process.env.PORT || 3000;
 const WORKSPACES = path.resolve(process.env.WORKSPACES_PATH || path.join(__dirname, "..", "workspaces"));
 
 await ensureDir(WORKSPACES);
