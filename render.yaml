@@ -1,10 +1,11 @@
 services:
   - type: web
     name: nk-backend
-    env: node
-    plan: free
+    runtime: node
     buildCommand: "npm install"
     startCommand: "npm start"
     envVars:
-      - key: NODE_ENV
-        value: production
+      - key: WORKSPACES_PATH
+        value: "workspaces"
+    plan: starter
+    region: oregon
